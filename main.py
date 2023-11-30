@@ -50,15 +50,18 @@ if __name__ == '__main__':
 
                     # Генерація
                     delta_gen = args.generation
-                    browser.run_perform(tod, delta_gen, 'GENERATION', 'PROD', info_label)
+                    browser.run_perform(tod, delta_gen, 'GENERATION', 'PROD', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                     # Графік
                     delta_sch = args.schedule
-                    browser.run_perform(tod, delta_sch, 'SCHEDULE', 'PROD', info_label)
+                    browser.run_perform(tod, delta_sch, 'SCHEDULE', 'PROD', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                     # Споживання
                     delta_cns = args.consumption
-                    browser.run_perform(tod, delta_cns, 'CONSUMPTION', 'PROD', info_label)
+                    browser.run_perform(tod, delta_cns, 'CONSUMPTION', 'PROD', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                 # ----------------------------- виконання по ролі BRP -------------------------------------------------
 
@@ -69,19 +72,22 @@ if __name__ == '__main__':
 
                     # Графік
                     delta_sch = args.schedule
-                    browser.run_perform(tod, delta_sch, 'SCHEDULE', 'BRP', info_label)
+                    browser.run_perform(tod, delta_sch, 'SCHEDULE', 'BRP', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                     # Доставка
                     delta_dlv = args.delivery
-                    browser.run_perform(tod, delta_dlv, 'DELIVERY', 'BRP', info_label)
+                    browser.run_perform(tod, delta_dlv, 'DELIVERY', 'BRP', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                     # Покупка
                     delta_pch = args.purchase
-                    browser.run_perform(tod, delta_pch, 'PURCHASE', 'BRP', info_label)
+                    browser.run_perform(tod, delta_pch, 'PURCHASE', 'BRP', info_label,
+                                        args.per_month_month, args.per_month_year)
 
             else:
                 # ------------------------- bipatov виконання по ролі BRP----------------------------------------------
-                if not browser.check_role_existence(user,'BRP'):  # перевірка чи перелік компанія-роль з БД є на сайті
+                if not browser.check_role_existence(user, 'BRP'):  # перевірка чи перелік компанія-роль з БД є на сайті
                     browser.close()
                     exit()
                 # browser.choose_company_and_role('SDE', 'BRP') #SDE ASD_LEKS
@@ -91,11 +97,13 @@ if __name__ == '__main__':
                     info_label = tov.nickname + ' - BRP (' + user.login + ')'
                     # Графік
                     delta_sch = args.schedule
-                    browser.run_perform(tod, delta_sch, 'SCHEDULE', 'BRP', info_label)
+                    browser.run_perform(tod, delta_sch, 'SCHEDULE', 'BRP', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                     # Споживання
                     delta_cns = args.consumption
-                    browser.run_perform(tod, delta_cns, 'CONSUMPTION', 'BRP', info_label)
+                    browser.run_perform(tod, delta_cns, 'CONSUMPTION', 'BRP', info_label,
+                                        args.per_month_month, args.per_month_year)
 
                     # Вигрузка по небалансах
                     start_imb_date = datetime.strptime(args.imbalance, '%Y-%m-%d').date()

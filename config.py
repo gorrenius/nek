@@ -18,6 +18,8 @@ SCL_IMBALANCE_PAGE = config("SCL_IMBALANCE_PAGE", cast=str, default="")
 SCL_TIME_DELTA_DAYS = config("SCL_TIME_DELTA_DAYS", cast=int, default=1)
 SCL_TIME_DELTA_DAYS_IMBALANCE = config("SCL_TIME_DELTA_DAYS_IMBALANCE", cast=int, default=1)
 SCL_START_IMBALANCE_DATE = config("SCL_START_IMBALANCE_DATE", cast=str, default=datetime.today().replace(day=1))
+SCL_PER_MONTH_MONTH = config("SCL_PER_MONTH_MONTH", cast=str, default="0")
+SCL_PER_MONTH_YEAR = config("SCL_PER_MONTH_YEAR", cast=str, default="0")
 
 PG_HOST = config("PG_HOST", cast=str, default="localhost")
 PG_PORT = config("PG_PORT", cast=int, default=54321)

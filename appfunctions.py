@@ -7,7 +7,8 @@ import pandas
 import pytz
 
 from appclasses import DbComponent, SiteComponent
-from config import logger, SCL_TIME_DELTA_DAYS, SCL_START_IMBALANCE_DATE, USE_SSH, SSH_HOST, DEFAULT_SCHEMA, SCL_USER
+from config import logger, SCL_TIME_DELTA_DAYS, SCL_START_IMBALANCE_DATE, USE_SSH, SSH_HOST, DEFAULT_SCHEMA, SCL_USER, \
+    SCL_PER_MONTH_YEAR, SCL_PER_MONTH_MONTH
 from database.db_functions import DB
 
 
@@ -35,6 +36,13 @@ class APP:
             print(f"--- TEST server --- schema {DEFAULT_SCHEMA}")
         else:
             print("--- UNKNOWN server ---")
+
+    @staticmethod
+    def two_digit_month(month_str: str):
+
+        date_obj = datetime.strptime(month_str, '%m')
+        two_digital_month = date_obj.strftime('%m')
+        return two_digital_month
 
     def app_argparser(self):
 
@@ -90,14 +98,36 @@ class APP:
             default=SCL_START_IMBALANCE_DATE,
             help='Початкова дата для вивантаження розрахунку небалансів. Кінцева дата встановлюється автоматично - останній '
                  'день місяця від початкової дати.')
+        argparser.add_argument(
+            '--per_month_month',
+            type=str,
+            default=SCL_PER_MONTH_MONTH,
+            help='Значення календарного місяця для вивантаження даних одразу за місяць.')
+        argparser.add_argument(
+            '--per_month_year',
+            type=str,
+            default=SCL_PER_MONTH_YEAR,
+            help='Значення календарного року для вивантаження даних одразу за місяць.')
+
         args = argparser.parse_args()
+
+        # Перевіряємо параметри --per_month_year, --per_month_month. Якщо вони обидва не дорівнюють нулю, то повинні бути
+        # значенням року та місяця відповідно. Перевіряємо --imbalance, має бути дата у форматі "%Y-%m-%d"
         try:
             # Try to parse the string as a date with the "Y-m-d" format
             datetime.strptime(args.imbalance, "%Y-%m-%d")
-        except ValueError:
+            if not (args.per_month_month == '0' and args.per_month_year == '0'):
+                datetime.strptime(args.per_month_month, "%m")
+                args.per_month_month = self.two_digit_month(args.per_month_month)  # Замінити місяць на двозначний
+                datetime.strptime(args.per_month_year, "%Y")
+                # datetime.strftime(args.per_month_month, "%m")
+                # datetime.strftime(args.per_month_year, "%Y")
+        except ValueError as ex:
             # If parsing fails, it's not in the correct format
-            logger.error(f"{args.imbalance} Некоректний формат дати (Y-m-d).")
-            exit(f"{args.imbalance} Некоректний формат дати (Y-m-d).")
+            print(ex)
+            logger.error(f"{ex} Некоректний формат дати.")
+            exit(f"{ex} Некоректний формат дати.")
+
         return args
 
     def report_argparser(self):
@@ -274,7 +304,7 @@ class APP:
         data_df = data_df.replace('\xa0', '', regex=True)  # заміна пробілу
         data_df.replace(to_replace='f', value=None, inplace=True)  # '"F@'
         data_df.replace(to_replace='ff', value=None, inplace=True)
-        data_df = data_df.replace(r'f$', 0, regex=True) #  заміна числа 13.0000f, 238.0000f, 7.0000f
+        data_df = data_df.replace(r'f$', 0, regex=True)  # заміна числа 13.0000f, 238.0000f, 7.0000f
 
         data_df = data_df.astype(float)
         data_df = data_df.replace(np.nan, None)

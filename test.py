@@ -25,8 +25,8 @@ trg_date = str((date.today() - timedelta(days=1395)))
 print(trg_date)
 
 
-d0 = date(2022, 3, 22)
-d1 = date(2023, 10, 28)
+d0 = date(2023, 9, 30)
+d1 = date(2023, 10, 30)
 delta = d1 - d0
 print('The number of days between the given range of dates is :')
 print(delta.days)
@@ -40,7 +40,12 @@ lst_insert.append(dict(consumption_place_uid=333, version_id=2,
                                            value_meter=2323))
 print(lst_insert)
 
+from datetime import datetime
+month_str = "6"
+date_obj = datetime.strptime(month_str, '%m')
+two_digit_month = date_obj.strftime('%m')
 
+print(f':::::::::::::{two_digit_month}')
 
 
 

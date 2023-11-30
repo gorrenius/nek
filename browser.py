@@ -1,5 +1,5 @@
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
 from time import sleep
 
 import pandas
@@ -202,18 +202,16 @@ class Browser:
             exit("ERROR in open_page_of_components function: No such element. Change structure site OR No connect!!!")
 
     # period_delta - кількість днів отримана з argparser
-    def run_perform(self, today_date, period_delta: int, type_cmp: str, role: str, info_label: str):
-
-        while period_delta >= 0:
-            t_day = str((today_date - timedelta(days=period_delta)).strftime('%d'))
-            t_month = str((today_date - timedelta(days=period_delta)).strftime('%m'))
-            t_year = str((today_date - timedelta(days=period_delta)).year)
-
+    def run_perform(self, today_date, period_delta: int, type_cmp: str, role: str, info_label: str,
+                    per_month_month: str, per_month_year: str):
+        if not (per_month_month == '0' and per_month_year == '0'):  # буде вибірка на сайті за місяць вцілому
+            t_month = per_month_month
+            t_year = per_month_year
             result = False
-            num_try = [0, 1, 2] # робимо 3 спроби, якщо сторінка не завантажується
+            num_try = [0, 1, 2]  # робимо 3 спроби, якщо сторінка не завантажується
             for x in num_try:
                 result = self.load_component(
-                    c_day=t_day, c_month=t_month, c_year=t_year, type_cmp=type_cmp, role=role, info=info_label)
+                    c_day='0', c_month=t_month, c_year=t_year, type_cmp=type_cmp, role=role, info=info_label)
                 if result:
                     break
                 else:
@@ -221,7 +219,26 @@ class Browser:
                     self.open_page_of_components()
             if not result:  # три спроби невдалі
                 exit(f'Не вдалось завантажити сторінку із 3-х спроб.')
-            period_delta -= 1
+
+        else:  # буде вибірка на сайті по днях
+            while period_delta >= 0:
+                t_day = str((today_date - timedelta(days=period_delta)).strftime('%d'))
+                t_month = str((today_date - timedelta(days=period_delta)).strftime('%m'))
+                t_year = str((today_date - timedelta(days=period_delta)).year)
+
+                result = False
+                num_try = [0, 1, 2]  # робимо 3 спроби, якщо сторінка не завантажується
+                for x in num_try:
+                    result = self.load_component(
+                        c_day=t_day, c_month=t_month, c_year=t_year, type_cmp=type_cmp, role=role, info=info_label)
+                    if result:
+                        break
+                    else:
+                        # оновлюємо сторінку, вибираємо компоненти балансування та переходимо на наступну ітерацію цикла
+                        self.open_page_of_components()
+                if not result:  # три спроби невдалі
+                    exit(f'Не вдалось завантажити сторінку із 3-х спроб.')
+                period_delta -= 1
 
     def load_component(self, c_day: str, c_month: str, c_year: str, type_cmp: str, role: str,
                        info: str):  # version: str,
@@ -244,17 +261,22 @@ class Browser:
             # За тип періоду - День
             # day_value_from_yesterday = str((date.today() - timedelta(days=SCL_TIME_DELTA_DAYS)).day)
             self.__browser.find_element(By.NAME, "dateTypeChooser.dateTypeFilter").click()
-            Select(self.__browser.find_element(By.NAME, "dateTypeChooser.dateTypeFilter")).select_by_value('DAY')
-            # print('Вибрали тип періоду- День')
+            if c_day != '0':  # за день
+                Select(self.__browser.find_element(By.NAME, "dateTypeChooser.dateTypeFilter")).select_by_value('DAY')
+                # print('Вибрали тип періоду- День')
+            else:
+                Select(self.__browser.find_element(By.NAME, "dateTypeChooser.dateTypeFilter")).select_by_value('MONTH')
+                # print('Вибрали тип періоду- Місяць')
             (Select(self.__browser.find_element(By.NAME, "dateTypeChooser.year")).
              select_by_visible_text(c_year))
             # print(f'Вибрали Рік- {c_year}')
             (Select(self.__browser.find_element(By.NAME, "dateTypeChooser.month")).
              select_by_visible_text(c_month))
             # print(f'Вибрали місяць- {c_month}')
-            (Select(self.__browser.find_element(By.NAME, "dateTypeChooser.day")).
-             select_by_visible_text(c_day))
-            # print(f'Вибрали число- {c_day}')
+            if c_day != '0':  # за день
+                (Select(self.__browser.find_element(By.NAME, "dateTypeChooser.day")).
+                 select_by_visible_text(c_day))
+                # print(f'Вибрали число- {c_day}')
             print(f'Вибрали дату  {c_year}-{c_month}-{c_day}')
             # Обираємо торгову зону 'UA-IPS_MBA'
             # (Select(self.__browser.find_element(By.NAME, "mainBean.functionalGroupPk")).
@@ -301,6 +323,15 @@ class Browser:
                                             "body>div>div>form>div:nth-child(24)>nobr>input:nth-child(4)").click()
                 print('Клікнули Показати часові ряди')
                 self.__browser.implicitly_wait(7)
+                if c_day == '0':  # якщо вибираємо вцілому за місяць, то перевиберемо поле місяць (Місяць-значення періоду)
+                    Select(self.__browser.find_element(By.NAME, "dateTypeChooser.dateTypeFilter")).select_by_value(
+                        'MONTH_PERIOD')
+                    self.__browser.implicitly_wait(7)
+                    print(f'Вибрали (Місяць-значення періоду)')
+                    # Натискаємо кнопку "Показати"
+                    self.__browser.find_element(By.ID, "filterButton").click()
+                    print('Клікнули Показати (Місяць-значення періоду)')
+                    self.__browser.implicitly_wait(7)
                 # sleep(5)
                 # WebDriverWait(self.__browser, 10).until(
                 #     lambda ddriver: self.__browser.execute_script('return document.readyState') == 'complete'
