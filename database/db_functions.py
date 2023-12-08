@@ -226,6 +226,7 @@ class DB(ConnectionDB):
         return lst_added
 
     def add_components(self, lst_new_components) -> list[DbComponent]:
+
         lst_added = []
         try:
             cnn = self.set_connection()
@@ -249,12 +250,65 @@ class DB(ConnectionDB):
         finally:
             self.close_connection()
         return lst_added
+    def split_big_list(self, lst_values):
+        split_lists = lst_values
+        if len(lst_values) > 10:
+            chunk_size = 2
+            split_lists = [lst_values[i:i + chunk_size] for i in range(0, len(lst_values), chunk_size)]
+        return split_lists
+    def add_time_values_new(self, lst_values, type_cmp: str, role: str):
+
+        if type_cmp == 'GENERATION':
+            target_table = MmsGenerationValue
+        elif type_cmp == 'CONSUMPTION':
+            target_table = MmsConsumptionValue
+        elif type_cmp == 'SCHEDULE' and role == 'PROD':
+            target_table = MmsGrafProdValue
+        elif type_cmp == 'SCHEDULE' and role == 'BRP':
+            target_table = MmsGrafValue
+        elif type_cmp == 'PURCHASE':
+            target_table = MmsPurchaseValue
+        elif type_cmp == 'DELIVERY':
+            target_table = MmsDeliveryValue
+        else:
+            logger.error(f'Помилка! Невідомий тип компонента {type_cmp} {role}')
+            exit(f'Помилка! Невідомий тип компонента {type_cmp} {role}')
+        #-------------------------------------------------------------------------
+        # якщо список великий, розіб ємо його на декілька
+        arr_lst_splited_insert_values = []
+        arr_lst_splited_insert_values = self.split_big_list(lst_values)
+        print(f'+++++++++++++++++++++++++{len(arr_lst_splited_insert_values)}')
+        count_uid = 0
+        for lst_splited_values in arr_lst_splited_insert_values:
+
+            ff = 1
+            try:
+                # cnn = self.set_connection()
+                sql_cmd = (insert(target_table).values(lst_values))
+                sql_cmd = (sql_cmd.on_conflict_do_update(
+                    index_elements=[target_table.component_uid, target_table.version_id, target_table.date_meter,
+                                    target_table.hour_from, target_table.hour_to],
+                    set_=dict(value_meter=sql_cmd.excluded.value_meter))
+                           .returning(target_table.component_uid))
+
+                # db_request = cnn.execute(sql_cmd)
+                # cnn.commit()
+                # for x in db_request:
+                #     count_uid += 1
+            except (OperationalError, IntegrityError, DBAPIError) as ex:
+                print("Помилка бази даних. Функція add_time_values ")
+                logger.error(str(ex))
+                exit(str(ex))
+            finally:
+                self.close_connection()
+        print(f'{ff}////////////////////////////////////////////////////////')
+        return count_uid
 
     def add_time_values(self, lst_values, type_cmp: str, role: str):
 
+
         count_uid = 0
         try:
-
             if type_cmp == 'GENERATION':
                 target_table = MmsGenerationValue
             elif type_cmp == 'CONSUMPTION':
@@ -271,17 +325,24 @@ class DB(ConnectionDB):
                 logger.error(f'Помилка! Невідомий тип компонента {type_cmp} {role}')
                 exit(f'Помилка! Невідомий тип компонента {type_cmp} {role}')
             cnn = self.set_connection()
-            sql_cmd = (insert(target_table).values(lst_values))
-            sql_cmd = (sql_cmd.on_conflict_do_update(
-                index_elements=[target_table.component_uid, target_table.version_id, target_table.date_meter,
-                                target_table.hour_from, target_table.hour_to],
-                set_=dict(value_meter=sql_cmd.excluded.value_meter))
-                       .returning(target_table.component_uid))
+            #-----------------------------------------------
+            # Розділяємо запит на частини, щоб не більше 100тис. рядків в одному інсерті
+            chunk_size = 100000
+            split_lists = [lst_values[i:i + chunk_size] for i in range(0, len(lst_values), chunk_size)]
+            for i, split_list_values in enumerate(split_lists, start=1):
+                print(f"Part {i}:")
 
-            db_request = cnn.execute(sql_cmd)
-            cnn.commit()
-            for x in db_request:
-                count_uid += 1
+                sql_cmd = (insert(target_table).values(split_list_values))
+                sql_cmd = (sql_cmd.on_conflict_do_update(
+                    index_elements=[target_table.component_uid, target_table.version_id, target_table.date_meter,
+                                    target_table.hour_from, target_table.hour_to],
+                    set_=dict(value_meter=sql_cmd.excluded.value_meter))
+                           .returning(target_table.component_uid))
+
+                db_request = cnn.execute(sql_cmd)
+                cnn.commit()
+                for x in db_request:
+                    count_uid += 1
         except (OperationalError, IntegrityError, DBAPIError) as ex:
             print("Помилка бази даних. Функція add_time_values ")
             logger.error(str(ex))

@@ -7,7 +7,7 @@ from config import logger, SCL_IMBALANCE_PAGE
 from database.db_functions import DB
 
 if __name__ == '__main__':
-
+    a = datetime.now()
     APP.what_is_your_server()
     args = APP().app_argparser()  # отримуємо параметри, встановлені користувачем при запуску
     browser = Browser()
@@ -118,3 +118,4 @@ if __name__ == '__main__':
             exit()
     browser.close()
     print('Bихід \n_______________________________')
+    print(f'Час роботи {datetime.now()-a}__________')
