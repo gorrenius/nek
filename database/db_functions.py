@@ -256,6 +256,7 @@ class DB(ConnectionDB):
             chunk_size = 2
             split_lists = [lst_values[i:i + chunk_size] for i in range(0, len(lst_values), chunk_size)]
         return split_lists
+
     def add_time_values_new(self, lst_values, type_cmp: str, role: str):
 
         if type_cmp == 'GENERATION':
@@ -521,8 +522,11 @@ class DB(ConnectionDB):
                         sql_middle += str(tt)
                 sql_end = text(
                     f"sum(value_meter) from mms_consumption_values mcv where mcv.date_meter between '{dtstart}'::date and "
-                    f"'{dtend}'::date and mcv.value_meter is not null and mcv.version_id = {version} group by "
-                    "mcv.date_meter, mcv.hour_from, mcv.hour_to order by mcv.date_meter, mcv.hour_from"
+                    f"'{dtend}'::date and mcv.value_meter is not null and mcv.version_id = {version} "
+                    f"and mcv.component_uid in (select mdc.uid from mms_dict_components mdc "
+                    f"left join mms_dict_accounts mdat on mdc.account_id_to = mdat.id "
+                    f"where mdat.company_id = 1 and mdc.account_id_to in (3, 4))"
+                    f"group by mcv.date_meter, mcv.hour_from, mcv.hour_to order by mcv.date_meter, mcv.hour_from"
                 )
                 sql_start = str(sql_start)
                 sql_middle = str(sql_middle)
